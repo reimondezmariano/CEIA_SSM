@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.ipynb_checkpoints/
+
+Miniconda3-*.sh
+
+# data and generated outputs
+data/
+DataSet/
+Landmarks_aligned/
+groomed/
+shapeworks_project/
+results/
+output/
+*.stl
+*.vtk
+*.vtp
+*.particles
+*.xlsx
+*.swproj
