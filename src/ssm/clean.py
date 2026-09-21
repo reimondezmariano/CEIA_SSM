@@ -13,15 +13,10 @@ ADAPTIVITY = 0.0
 SMOOTH_ITERATIONS = 10
 SMOOTH_PASSBAND = 0.05
 
-# Bridges a surface split into disjoint pieces by a segmentation cut plane.
-# The radius must exceed half the gap width; finer spacing costs cubically
-# and already runs to ~15 min per transform here.
-CLOSING_RADIUS_MM = 1.5
-CLOSING_SPACING = [0.8, 0.8, 0.8]
-CLOSING_PADDING = [6, 6, 6]
-
 # A shell this large relative to the whole is a severed piece of the bone,
-# not debris, so dropping it would discard real anatomy.
+# not debris, so keeping only the largest would silently discard real anatomy.
+# Such a subject is excluded rather than repaired: rejoining it needs a voxel
+# closing that costs ~25 min and quantizes the whole surface.
 SEVERED_SHELL_FRACTION = 0.1
 
 
@@ -35,41 +30,32 @@ def second_shell_fraction(mesh):
     return sizes[-2] / sum(sizes)
 
 
-def close_gaps(mesh, radius=CLOSING_RADIUS_MM):
-    # ShapeWorks distance transforms are positive inside, so a negative
-    # isovalue dilates and a positive one erodes. Reversing these two calls
-    # yields an opening, which severs the smaller piece instead of joining it.
-    dilated = mesh.toDistanceTransform(
-        spacing=CLOSING_SPACING, padding=CLOSING_PADDING
-    ).toMesh(-radius)
-    return dilated.toDistanceTransform(
-        spacing=CLOSING_SPACING, padding=CLOSING_PADDING
-    ).toMesh(radius)
-
-
 def clean(path, n_vertices=N_VERTICES):
     mesh = sw.Mesh(str(path))
-    severed = second_shell_fraction(mesh) >= SEVERED_SHELL_FRACTION
-    if severed:
-        mesh = close_gaps(mesh)
+    if second_shell_fraction(mesh) >= SEVERED_SHELL_FRACTION:
+        return None
     mesh.extractLargestComponent()
     mesh.fillHoles()
     mesh.smoothSinc(iterations=SMOOTH_ITERATIONS, passband=SMOOTH_PASSBAND)
     mesh.remesh(numVertices=n_vertices, adaptivity=ADAPTIVITY)
-    return mesh, severed
+    return mesh
 
 
 def main():
     GROOMED.mkdir(parents=True, exist_ok=True)
     with MANIFEST.open() as f:
         subjects = list(csv.DictReader(f))
+    written = 0
     for row in subjects:
+        mesh = clean(row["mesh"])
+        if mesh is None:
+            print(f"{row['subject']}: skipped, mesh is severed into pieces")
+            continue
         out = GROOMED / f"{row['subject']}.ply"
-        mesh, severed = clean(row["mesh"])
         mesh.write(str(out))
-        note = " (closed severed shells)" if severed else ""
-        print(f"{row['subject']} -> {out.name}{note}")
-    print(f"{len(subjects)} meshes -> {GROOMED}")
+        written += 1
+        print(f"{row['subject']} -> {out.name}")
+    print(f"{written}/{len(subjects)} meshes -> {GROOMED}")
 
 
 if __name__ == "__main__":
