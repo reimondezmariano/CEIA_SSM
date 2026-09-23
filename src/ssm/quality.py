@@ -17,6 +17,8 @@ import shapeworks as sw
 from scipy.spatial import cKDTree
 
 from .clean import GROOMED
+from .model import build, load_local, load_world
+from .project import PROJECT_DIR
 
 COVER_MM = 10.0
 NEIGHBOURS = 6
@@ -29,29 +31,24 @@ def roughness(displacement, neighbours):
 
 def evaluate(project_dir):
     particles = Path(project_dir) / "pelvis_particles"
-    names = sorted(p.name.removesuffix("_world.particles") for p in particles.glob("*_world.particles"))
-    world = np.stack([np.loadtxt(particles / f"{n}_world.particles") for n in names])
-    mean = world.mean(0)
-    neighbours = cKDTree(mean).query(mean, k=NEIGHBOURS + 1)[1][:, 1:]
+    names, world = load_world(particles)
+    model = build(world)
+    neighbours = cKDTree(model.mean).query(model.mean, k=NEIGHBOURS + 1)[1][:, 1:]
 
     subjects = []
     for name, w in zip(names, world):
         surface = sw.Mesh(str(GROOMED / f"{name}.ply")).points()
-        local = np.loadtxt(particles / f"{name}_local.particles")
+        local = load_local(name, particles)
         subjects.append({
             "subject": name,
             "coverage": float((cKDTree(local).query(surface)[0] < COVER_MM).mean()),
-            "roughness": float(np.median(roughness(w - mean, neighbours))),
+            "roughness": float(np.median(roughness(w - model.mean, neighbours))),
         })
 
-    flat = world.reshape(len(world), -1)
-    _, s, vt = np.linalg.svd(flat - flat.mean(0), full_matrices=False)
-    variance = s**2 / (s**2).sum()
     modes = []
     for k in range(MODES):
-        d = (3 * s[k] / np.sqrt(len(world) - 1) * vt[k]).reshape(-1, 3)
-        r = roughness(d, neighbours)
-        modes.append({"mode": k + 1, "variance": float(variance[k]),
+        r = roughness(3 * model.sd[k] * model.modes[k], neighbours)
+        modes.append({"mode": k + 1, "variance": float(model.variance[k]),
                       "roughness": float(np.median(r)), "rough_particles": int((r > 15).sum())})
     return subjects, modes
 
@@ -71,4 +68,4 @@ def main(project_dir):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else Path.home() / "SSM" / "data" / "shapeworks_project")
+    main(sys.argv[1] if len(sys.argv) > 1 else PROJECT_DIR)
