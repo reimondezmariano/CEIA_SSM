@@ -11,6 +11,11 @@ PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
 
+# In a 40-subject run the optimizer left these with particles over only ~70%
+# of the bone (vs ~94% for the rest), so their correspondence is unreliable
+# and they dominated PC1. Their meshes are normal; the failure is the fit.
+EXCLUDE = {"TMR_000009", "TMR_000022", "TMR_000045"}
+
 OPTIMIZE = {
     "number_of_particles": 512,
     # The iliac wing is thin; normals stop particles on opposite faces of it
@@ -43,7 +48,8 @@ def load_subjects():
     return [
         (row["subject"], row["mesh"], GROOMED / f"{row['subject']}.ply")
         for row in rows
-        if (GROOMED / f"{row['subject']}.ply").exists()
+        if row["subject"] not in EXCLUDE
+        and (GROOMED / f"{row['subject']}.ply").exists()
     ]
 
 
