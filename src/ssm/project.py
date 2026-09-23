@@ -11,10 +11,10 @@ PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
 
-# In a 40-subject run the optimizer left these with particles over only ~70%
-# of the bone (vs ~94% for the rest), so their correspondence is unreliable
-# and they dominated PC1. Their meshes are normal; the failure is the fit.
-EXCLUDE = {"TMR_000009", "TMR_000022", "TMR_000045"}
+# Their source hip meshes are faulty. Every optimizer setting tried left them
+# with low particle coverage or scrambled correspondence (see ssm.quality),
+# and they dominated PC1.
+EXCLUDE = {"TMR_000009", "TMR_000022", "TMR_000043", "TMR_000045"}
 
 OPTIMIZE = {
     "number_of_particles": 512,
