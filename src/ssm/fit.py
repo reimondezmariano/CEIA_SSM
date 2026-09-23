@@ -21,6 +21,11 @@ MEAN_MESH = PROJECT_DIR / "mean_shape_0.vtk"
 MEAN_PARTICLES = PROJECT_DIR / "mean_shape_0.pts"
 
 MAX_DIST_MM = 10.0
+# The cutoff starts loose and tightens to MAX_DIST_MM, so a bone much larger
+# or smaller than the mean can pull the model to its size before details are
+# fitted; a tight cutoff from the start leaves the fit stuck near mean size.
+START_DIST_MM = 40.0
+ANNEAL_ITERATIONS = 30
 MIN_NORMAL_COS = 0.5  # normals more than 60 degrees apart
 TRIM = 0.9  # of the pairs that pass, keep the closest 90%
 RIGID_ITERATIONS = 30
@@ -31,6 +36,10 @@ TPS_SMOOTHING = 1.0
 # slide along the bone while every particle still finds surface nearby.
 SYMMETRIC = True
 BACKWARD_SAMPLES = 3000
+# Every target point is real bone (bar the cap, which the normal check drops),
+# so trimming the farthest ones would only drop the rim of a bone larger than
+# the current fit and hold it undersized.
+BACKWARD_TRIM = 1.0
 
 
 @dataclass
@@ -89,9 +98,9 @@ def fit(model, particle_normals, target_points, target_normals, n_modes, reg, sy
     rotation = np.eye(3)
     translation = target_points.mean(0) - model.mean.mean(0)
 
-    def trimmed(dist, agree, max_dist):
+    def trimmed(dist, agree, max_dist, keep=TRIM):
         ok = agree & (dist < max_dist)
-        return ok & (dist <= np.quantile(dist[ok], TRIM))
+        return ok & (dist <= np.quantile(dist[ok], keep))
 
     def match(particles, max_dist):
         moved = particles @ rotation.T + translation
@@ -107,7 +116,7 @@ def fit(model, particle_normals, target_points, target_normals, n_modes, reg, sy
             moved = particles @ rotation.T + translation
             bdist, bidx = cKDTree(moved).query(back)
             agree = (particle_normals[bidx] @ rotation.T * back_normals).sum(1) > MIN_NORMAL_COS
-            bok = trimmed(bdist, agree, max_dist)
+            bok = trimmed(bdist, agree, max_dist, BACKWARD_TRIM)
             index = np.concatenate([index, bidx[bok]])
             points = np.concatenate([points, back[bok]])
             # each direction carries equal total weight
@@ -117,8 +126,12 @@ def fit(model, particle_normals, target_points, target_normals, n_modes, reg, sy
     rms = np.inf
     for it in range(RIGID_ITERATIONS + ITERATIONS):
         rigid_only = it < RIGID_ITERATIONS
+        step = it - RIGID_ITERATIONS
+        annealing = 0 <= step < ANNEAL_ITERATIONS
+        cutoff = (np.inf if rigid_only else
+                  START_DIST_MM + (MAX_DIST_MM - START_DIST_MM) * min(step / ANNEAL_ITERATIONS, 1.0))
         particles = model.shape(b)
-        index, points, weights, ok, dist = pairs(particles, np.inf if rigid_only else MAX_DIST_MM)
+        index, points, weights, ok, dist = pairs(particles, cutoff)
         if not rigid_only and n_modes:
             residual = ((points - translation) @ rotation - model.mean[index]).ravel()
             a = basis.reshape(-1, 3, n_modes)[index].reshape(-1, n_modes)
@@ -127,7 +140,7 @@ def fit(model, particle_normals, target_points, target_normals, n_modes, reg, sy
             particles = model.shape(b)
         rotation, translation = weighted_kabsch(particles[index], points, weights)
         new_rms = float(np.sqrt((dist[ok] ** 2).mean()))
-        if not rigid_only and abs(rms - new_rms) < TOL_MM:
+        if not rigid_only and not annealing and abs(rms - new_rms) < TOL_MM:
             break
         rms = new_rms
 
