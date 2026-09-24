@@ -11,10 +11,10 @@ PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
 
-# Their source hip meshes are faulty. Every optimizer setting tried left them
-# with low particle coverage or scrambled correspondence (see ssm.quality),
+# Their right-side source meshes are faulty. Every optimizer setting tried left
+# them with low particle coverage or scrambled correspondence (see ssm.quality),
 # and they dominated PC1.
-EXCLUDE = {"TMR_000009", "TMR_000022", "TMR_000043", "TMR_000045"}
+EXCLUDE = {"TMR_000009_R", "TMR_000022_R", "TMR_000043_R", "TMR_000045_R"}
 
 OPTIMIZE = {
     "number_of_particles": 512,
@@ -46,10 +46,10 @@ def load_subjects():
     with MANIFEST.open() as f:
         rows = list(csv.DictReader(f))
     return [
-        (row["subject"], row["mesh"], GROOMED / f"{row['subject']}.ply")
+        (row["shape"], row["mesh"], GROOMED / f"{row['shape']}.ply")
         for row in rows
-        if row["subject"] not in EXCLUDE
-        and (GROOMED / f"{row['subject']}.ply").exists()
+        if row["shape"] not in EXCLUDE
+        and (GROOMED / f"{row['shape']}.ply").exists()
     ]
 
 

@@ -12,15 +12,19 @@ OUT = HOME / "SSM" / "data" / "manifest.csv"
 
 # GT and LT are femoral, Coccyx is midline: none lie on the hemipelvis surface.
 LANDMARKS = ("ASIS", "PSIS", "PT", "FH")
-SIDE = "R"
 
 
-def landmark_flags(path):
+def side_of(path):
+    """'L' or 'R', from the pelvis_left/pelvis_right part of the file name."""
+    return re.search(r"pelvis_(left|right)", Path(path).name).group(1)[0].upper()
+
+
+def landmark_flags(path, side):
     if not path.exists():
         return {n: False for n in LANDMARKS}
     row = pd.read_csv(path).iloc[0]
     return {
-        n: bool(np.isfinite([row[f"{n}_{SIDE}_{a}"] for a in "xyz"]).all())
+        n: bool(np.isfinite([row[f"{n}_{side}_{a}"] for a in "xyz"]).all())
         for n in LANDMARKS
     }
 
@@ -29,11 +33,14 @@ def build():
     rows = []
     for mesh in sorted(MESH_DIR.glob("*.stl")):
         subject = re.match(r"(TMR_\d+)", mesh.name).group(1)
+        side = side_of(mesh)
         lm = LANDMARK_DIR / f"{subject}_landmarks_aligned.csv"
-        flags = landmark_flags(lm)
+        flags = landmark_flags(lm, side)
         rows.append(
             {
+                "shape": f"{subject}_{side}",
                 "subject": subject,
+                "side": side,
                 "mesh": str(mesh),
                 "landmarks": str(lm) if lm.exists() else "",
                 **{f"has_{n}": flags[n] for n in LANDMARKS},
@@ -50,7 +57,7 @@ def main():
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
-    print(f"{len(rows)} subjects -> {OUT}")
+    print(f"{len(rows)} shapes of {len({r['subject'] for r in rows})} subjects -> {OUT}")
 
 
 if __name__ == "__main__":

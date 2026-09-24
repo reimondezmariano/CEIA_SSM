@@ -1,7 +1,9 @@
 """Leave-one-out validation of reconstruction on simulated defects.
 
-Each subject is held out of the model in turn, a defect is cut at each
-landmark site and radius, and the model is fitted to what remains. Error is
+Each shape is held out of the model in turn, together with the other side of
+the same patient (a near mirror image, which would otherwise leak into the
+model), a defect is cut at each landmark site and radius, and the model is
+fitted to what remains. Error is
 the distance from the true surface to the reconstruction, inside the defect
 and over the whole bone. K = 0 is the rigidly fitted mean shape, the baseline
 any reconstruction must beat. The held-out subject still took part in the
@@ -35,9 +37,14 @@ def cases(mesh, name):
             yield site, radius, defects.cut(mesh, centre, radius), centre
 
 
+def patient(shape):
+    return shape.rsplit("_", 1)[0]
+
+
 def run_subject(args):
-    index, name, world = args
-    held_out = model.build(np.delete(world, index, 0))
+    name, names, world = args
+    keep = [patient(n) != patient(name) for n in names]
+    held_out = model.build(world[keep])
     mean_surface = fit.load_mean_surface()
     truth = pv.read(str(GROOMED / f"{name}.ply")).extract_surface().triangulate()
     rows = []
@@ -47,7 +54,7 @@ def run_subject(args):
         for k, reg in CONFIGS:
             result = fit.fit(held_out, mean_surface.particle_normals, points, normals, min(k, len(held_out.sd)), reg)
             error = distance(truth.points, fit.dense_surface(mean_surface, result, held_out))
-            row = {"subject": name, "site": site, "radius": radius, "modes": k, "reg": reg,
+            row = {"shape": name, "site": site, "radius": radius, "modes": k, "reg": reg,
                    "bone_mean": error.mean(), "bone_p95": np.percentile(error, 95)}
             if region is not None:
                 row |= {"defect_mean": error[region].mean(), "defect_p95": np.percentile(error[region], 95),
@@ -79,7 +86,7 @@ def summarize(rows):
 def main():
     names, world = model.load_world()
     with Pool() as pool:
-        rows = [r for subject in pool.imap_unordered(run_subject, [(i, n, world) for i, n in enumerate(names)])
+        rows = [r for subject in pool.imap_unordered(run_subject, [(n, names, world) for n in names])
                 for r in subject]
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fields = list(dict.fromkeys(k for r in rows for k in r))
@@ -87,7 +94,7 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    print(f"{len(rows)} fits over {len(names)} subjects -> {OUT}")
+    print(f"{len(rows)} fits over {len(names)} shapes -> {OUT}")
     summarize(rows)
 
 

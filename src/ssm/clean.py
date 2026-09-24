@@ -30,8 +30,12 @@ def second_shell_fraction(mesh):
     return sizes[-2] / sum(sizes)
 
 
-def clean(path, n_vertices=N_VERTICES):
+def clean(path, side="R", n_vertices=N_VERTICES):
+    """Groomed mesh in the model's right-sided frame: a left side is mirrored
+    x -> -x in the aligned pelvic frame (reflect also fixes the winding)."""
     mesh = sw.Mesh(str(path))
+    if side == "L":
+        mesh.reflect(sw.Axis.X)
     if second_shell_fraction(mesh) >= SEVERED_SHELL_FRACTION:
         return None
     mesh.extractLargestComponent()
@@ -43,18 +47,20 @@ def clean(path, n_vertices=N_VERTICES):
 
 def main():
     GROOMED.mkdir(parents=True, exist_ok=True)
+    for stale in GROOMED.glob("*.ply"):
+        stale.unlink()
     with MANIFEST.open() as f:
         subjects = list(csv.DictReader(f))
     written = 0
     for row in subjects:
-        mesh = clean(row["mesh"])
+        mesh = clean(row["mesh"], row["side"])
         if mesh is None:
-            print(f"{row['subject']}: skipped, mesh is severed into pieces")
+            print(f"{row['shape']}: skipped, mesh is severed into pieces")
             continue
-        out = GROOMED / f"{row['subject']}.ply"
+        out = GROOMED / f"{row['shape']}.ply"
         mesh.write(str(out))
         written += 1
-        print(f"{row['subject']} -> {out.name}")
+        print(f"{row['shape']} -> {out.name}")
     print(f"{written}/{len(subjects)} meshes -> {GROOMED}")
 
 

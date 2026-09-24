@@ -12,20 +12,23 @@ import pandas as pd
 import pyvista as pv
 from scipy.spatial import cKDTree
 
-from .manifest import LANDMARKS, SIDE
+from .manifest import LANDMARKS
 from .manifest import OUT as MANIFEST
 
 RADII_MM = (20, 30, 40)
 CAP_MAX_SIZE = 1e6  # fill every hole the cut leaves
 
 
-def landmarks(subject):
+def landmarks(shape):
+    """The shape's own-side landmarks, mirrored like its groomed mesh for a left side."""
     with MANIFEST.open() as f:
-        row = next(r for r in csv.DictReader(f) if r["subject"] == subject)
+        row = next(r for r in csv.DictReader(f) if r["shape"] == shape)
     if not row["landmarks"]:
         return {}
     values = pd.read_csv(row["landmarks"]).iloc[0]
-    points = {n: np.array([values[f"{n}_{SIDE}_{a}"] for a in "xyz"], dtype=float) for n in LANDMARKS}
+    side = row["side"]
+    flip = np.array([-1.0 if side == "L" else 1.0, 1.0, 1.0])
+    points = {n: flip * np.array([values[f"{n}_{side}_{a}"] for a in "xyz"], dtype=float) for n in LANDMARKS}
     return {n: p for n, p in points.items() if np.isfinite(p).all()}
 
 
