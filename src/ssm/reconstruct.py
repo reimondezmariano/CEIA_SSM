@@ -116,7 +116,7 @@ def reconstruct(path, reference=None, n_modes=MODES, reg=REG):
     render(OUT / f"{stem}.png", surface, damaged, reference)
     output = mirror(surface) if side_of(path) == "left" else surface
     output.clear_data()
-    output.save(str(OUT / f"{stem}.ply"))
+    output.save(str(OUT / f"{stem}.stl"), binary=True)
     return stem, report
 
 
@@ -128,7 +128,7 @@ def main():
     parser.add_argument("--reg", type=float, default=REG)
     args = parser.parse_args()
     stem, report = reconstruct(args.damaged, args.reference, args.modes, args.reg)
-    print(f"{stem} -> {OUT / stem}.ply")
+    print(f"{stem} -> {OUT / stem}.stl")
     for key, value in report.items():
         print(f"  {key}: {value:.2f}" if isinstance(value, float) else f"  {key}: {value}")
 
