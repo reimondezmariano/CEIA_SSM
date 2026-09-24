@@ -19,6 +19,8 @@ EXCLUDE = {"TMR_000009_R", "TMR_000022_R", "TMR_000043_R", "TMR_000045_R"}
 EXCLUDE |= {"TMR_000006_L", "TMR_000054_L", "TMR_000054_R"}
 # Low particle coverage or rough correspondence in the first 80-shape run.
 EXCLUDE |= {"TMR_000023_L", "TMR_000033_L", "TMR_000052_L", "TMR_000061_L"}
+# Rough correspondence in the 73-shape run, and alone they drove PC2.
+EXCLUDE |= {"TMR_000013_L", "TMR_000050_L"}
 
 OPTIMIZE = {
     "number_of_particles": 512,
