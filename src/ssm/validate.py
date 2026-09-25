@@ -22,7 +22,7 @@ from .project import PROJECT_DIR
 
 OUT = PROJECT_DIR.parent / "reconstruction" / "validation.csv"
 
-CONFIGS = [(0, 0.0)] + [(k, reg) for k in (5, 10, 20, 34) for reg in (1.0, 10.0)]
+CONFIGS = [(0, 0.0)] + [(k, reg) for k in (5, 10, 20, 34, 50) for reg in (1.0, 10.0)]
 
 
 def distance(points, surface):
