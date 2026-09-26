@@ -1,12 +1,12 @@
 import csv
-from pathlib import Path
 
 import shapeworks as sw
 import trimesh
 
+from .manifest import DATA
 from .manifest import OUT as MANIFEST
 
-GROOMED = Path.home() / "SSM" / "data" / "groomed"
+GROOMED = DATA / "groomed"
 
 N_VERTICES = 25000
 ADAPTIVITY = 0.0

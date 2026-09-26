@@ -1,4 +1,5 @@
 import csv
+import os
 import re
 from pathlib import Path
 
@@ -6,9 +7,12 @@ import numpy as np
 import pandas as pd
 
 HOME = Path.home()
-MESH_DIR = HOME / "DataSet"
-LANDMARK_DIR = HOME / "Landmarks_aligned"
-OUT = HOME / "SSM" / "data" / "manifest.csv"
+# Where the exported meshes and landmarks live, and where every generated file goes.
+# Override them to run the pipeline on another training set without touching this one.
+MESH_DIR = Path(os.environ.get("SSM_MESH_DIR", HOME / "DataSet"))
+LANDMARK_DIR = Path(os.environ.get("SSM_LANDMARK_DIR", HOME / "Landmarks_aligned"))
+DATA = Path(os.environ.get("SSM_DATA", HOME / "SSM" / "data"))
+OUT = DATA / "manifest.csv"
 
 # GT and LT are femoral, Coccyx is midline: none lie on the hemipelvis surface.
 LANDMARKS = ("ASIS", "PSIS", "PT", "FH")
@@ -32,7 +36,7 @@ def landmark_flags(path, side):
 def build():
     rows = []
     for mesh in sorted(MESH_DIR.glob("*.stl")):
-        subject = re.match(r"(TMR_\d+)", mesh.name).group(1)
+        subject = re.match(r"([A-Za-z]+_\d+)", mesh.name).group(1)
         side = side_of(mesh)
         lm = LANDMARK_DIR / f"{subject}_landmarks_aligned.csv"
         flags = landmark_flags(lm, side)

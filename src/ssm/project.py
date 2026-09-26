@@ -1,10 +1,10 @@
 import csv
 import os
-from pathlib import Path
 
 import shapeworks as sw
 
 from .clean import GROOMED
+from .manifest import DATA
 from .manifest import OUT as MANIFEST
 
 # The model is trained on right hemipelves only: on held-out defects it beats the
@@ -14,7 +14,7 @@ from .manifest import OUT as MANIFEST
 # SSM_PROJECT and SSM_SIDES build an experiment in its own directory (e.g.
 # SSM_PROJECT=shapeworks_project_71 SSM_SIDES=LR for the both-sides model); every
 # module reads the same variables.
-PROJECT_DIR = Path.home() / "SSM" / "data" / os.environ.get("SSM_PROJECT", "shapeworks_project")
+PROJECT_DIR = DATA / os.environ.get("SSM_PROJECT", "shapeworks_project")
 SIDES = os.environ.get("SSM_SIDES", "R")
 PROJECT = PROJECT_DIR / "pelvis.swproj"
 
@@ -57,14 +57,26 @@ OPTIMIZE = {
 }
 
 
+def exclusions():
+    """Shapes left out of the model: DATA/exclude.txt if it exists (one shape per line, '#'
+    starts a comment, an empty file excludes nothing), otherwise the list above, which
+    belongs to the training set this repository was developed with."""
+    path = DATA / "exclude.txt"
+    if not path.exists():
+        return EXCLUDE
+    lines = (line.split("#")[0].strip() for line in path.read_text().splitlines())
+    return {line for line in lines if line}
+
+
 def load_subjects(sides=None):
     sides = SIDES if sides is None else sides
+    excluded = exclusions()
     with MANIFEST.open() as f:
         rows = list(csv.DictReader(f))
     return [
         (row["shape"], row["mesh"], GROOMED / f"{row['shape']}.ply")
         for row in rows
-        if row["shape"] not in EXCLUDE
+        if row["shape"] not in excluded
         and row["shape"][-1] in sides
         and (GROOMED / f"{row['shape']}.ply").exists()
     ]
