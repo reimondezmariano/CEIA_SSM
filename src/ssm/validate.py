@@ -25,7 +25,7 @@ for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VTK_S
 import numpy as np
 import pyvista as pv
 
-from . import defects, fit, model
+from . import defects, fit, model, project
 from .clean import GROOMED
 from .project import PROJECT_DIR
 
@@ -108,21 +108,28 @@ def main():
         keep = [n[-1] in sides for n in names]
         names, world = [n for n, k in zip(names, keep) if k], world[keep]
         parts.append(f"sides{sides}")
+    targets = names
+    if "--eval-sides" in sys.argv:
+        # Hold out shapes the model never saw (e.g. mirrored left sides against a
+        # right-only model); the same patient's shapes are still left out of the fit.
+        sides = sys.argv[sys.argv.index("--eval-sides") + 1]
+        targets = [name for name, _, _ in project.load_subjects(sides)]
+        parts.append(f"eval{sides}")
     if tag:
         parts.append(tag)
     OUT = OUT.with_name("_".join(parts) + ".csv")
     rows = []
     with Pool() as pool:
-        for done, subject in enumerate(pool.imap_unordered(run_subject, [(n, names, world) for n in names]), 1):
+        for done, subject in enumerate(pool.imap_unordered(run_subject, [(n, names, world) for n in targets]), 1):
             rows.extend(subject)
-            print(f"{done}/{len(names)} {subject[0]['shape']}", flush=True)
+            print(f"{done}/{len(targets)} {subject[0]['shape']}", flush=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fields = list(dict.fromkeys(k for r in rows for k in r))
     with OUT.open("w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    print(f"{len(rows)} fits over {len(names)} shapes -> {OUT}")
+    print(f"{len(rows)} fits over {len(targets)} shapes -> {OUT}")
     summarize(rows)
 
 

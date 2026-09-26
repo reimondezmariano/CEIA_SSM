@@ -113,6 +113,9 @@ def reconstruct(path, reference=None, n_modes=MODES, reg=REG):
 
     OUT.mkdir(parents=True, exist_ok=True)
     stem = f"{Path(path).name.split('_raw')[0]}_{side_of(path)}"
+    tag = PROJECT_DIR.name.removeprefix("shapeworks_project").strip("_")
+    if tag:  # a side experiment's model: keep its output next to the default model's
+        stem += f"_{tag}"
     render(OUT / f"{stem}.png", surface, damaged, reference)
     output = mirror(surface) if side_of(path) == "left" else surface
     output.clear_data()

@@ -7,10 +7,15 @@ import shapeworks as sw
 from .clean import GROOMED
 from .manifest import OUT as MANIFEST
 
-# SSM_PROJECT and SSM_SIDES build a side experiment (e.g. SSM_PROJECT=shapeworks_project_right
-# SSM_SIDES=R) in its own directory; every module reads the same variables.
+# The model is trained on right hemipelves only: on held-out defects it beats the
+# both-sides model by 0.2 mm on right shapes and ties it on mirrored left shapes,
+# because optimizing the correspondence on mirrored lefts too made it worse for
+# rights. Left sides are reconstructed by mirroring them onto this model.
+# SSM_PROJECT and SSM_SIDES build an experiment in its own directory (e.g.
+# SSM_PROJECT=shapeworks_project_71 SSM_SIDES=LR for the both-sides model); every
+# module reads the same variables.
 PROJECT_DIR = Path.home() / "SSM" / "data" / os.environ.get("SSM_PROJECT", "shapeworks_project")
-SIDES = os.environ.get("SSM_SIDES", "LR")
+SIDES = os.environ.get("SSM_SIDES", "R")
 PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
@@ -52,14 +57,15 @@ OPTIMIZE = {
 }
 
 
-def load_subjects():
+def load_subjects(sides=None):
+    sides = SIDES if sides is None else sides
     with MANIFEST.open() as f:
         rows = list(csv.DictReader(f))
     return [
         (row["shape"], row["mesh"], GROOMED / f"{row['shape']}.ply")
         for row in rows
         if row["shape"] not in EXCLUDE
-        and row["shape"][-1] in SIDES
+        and row["shape"][-1] in sides
         and (GROOMED / f"{row['shape']}.ply").exists()
     ]
 
