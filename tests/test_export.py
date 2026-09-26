@@ -129,6 +129,18 @@ class Run(unittest.TestCase):
         self.assertTrue(meshes.status.eq("review").all())
         self.assertTrue(meshes["flags"].str.contains("side has mean x").all())
 
+    def test_raw_files_that_already_carry_the_new_id(self):
+        for side in ("left", "right"):
+            (self.mesh_dir / f"SA000001_raw_4_pelvis_{side}.stl").rename(
+                self.mesh_dir / f"TMR_000099_raw_4_pelvis_{side}.stl")
+        export.main(self.args)
+        names = sorted(p.name for p in (self.out / "meshes").iterdir())
+        self.assertEqual(names, ["TMR_000099_raw_4_pelvis_left_aligned.stl", "TMR_000099_raw_4_pelvis_right_aligned.stl"])
+
+    def test_id_repeated_in_the_name_and_existing_aligned_suffix(self):
+        name = export.output_name(Path("SA000001_raw_4_SA000001_pelvis_right_aligned.stl"), "SA000001", "TMR_000099")
+        self.assertEqual(name, "TMR_000099_raw_4_TMR_000099_pelvis_right_aligned")
+
     def test_unmapped_patient_is_skipped(self):
         pd.DataFrame({"original_case_id": ["SA999999"], "new_case_id": ["TMR_000098"]}).to_csv(
             self.tmp / "mapping.csv", index=False)

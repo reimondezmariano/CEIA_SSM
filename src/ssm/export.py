@@ -150,10 +150,15 @@ def mesh_flags(mesh, side, aligned_row):
     return flags
 
 
-def find_meshes(mesh_dir, original):
-    """{'L': [paths], 'R': [paths]} for the STL files that start with the original id."""
+def find_meshes(mesh_dir, *ids):
+    """{'L': [paths], 'R': [paths]} for the STL files whose name starts with any of the ids.
+
+    The raw files may carry the original id (SA250167_raw_4_pelvis_left.stl) or already the
+    new one (TMR_000004_raw_4_pelvis_left.stl).
+    """
     found = {"L": [], "R": []}
-    for path in sorted(Path(mesh_dir).glob(f"{original}*.stl")):
+    paths = sorted({p for i in ids if i for p in Path(mesh_dir).glob(f"{i}*.stl")})
+    for path in paths:
         match = re.search(r"pelvis_(left|right)", path.name)
         if match:
             found[match.group(1)[0].upper()].append(path)
@@ -161,7 +166,8 @@ def find_meshes(mesh_dir, original):
 
 
 def output_name(path, original, new):
-    stem = path.stem.replace(original, new, 1)
+    """The file name with the original id replaced by the new one, ending in _aligned."""
+    stem = path.stem.replace(original, new)
     return stem if stem.endswith("_aligned") else f"{stem}_aligned"
 
 
@@ -190,7 +196,7 @@ def plan(landmarks, mesh_dir, mapping, out):
         if new is None:
             continue
         targets.append(out / "landmarks" / f"{new}_landmarks_aligned.csv")
-        for side, paths in find_meshes(mesh_dir, original).items():
+        for side, paths in find_meshes(mesh_dir, original, new).items():
             if len(paths) == 1:
                 targets.append(out / "meshes" / f"{output_name(paths[0], original, new)}.stl")
     return targets
@@ -219,7 +225,7 @@ def export_patient(row, mesh_dir, mapping, out):
     aligned.to_frame().T.to_csv(landmark_file, index=False)
     rows = [log("landmarks", "review" if flags else "ok", flags, output=landmark_file)]
 
-    for side, paths in find_meshes(mesh_dir, original).items():
+    for side, paths in find_meshes(mesh_dir, original, new).items():
         if not paths:
             continue
         if len(paths) > 1:

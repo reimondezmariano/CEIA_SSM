@@ -106,9 +106,11 @@ Escribe `OUT/meshes/<nuevo id>_..._pelvis_<left|right>_aligned.stl`, `OUT/landma
 salida, SHA-256) y `OUT/export_run.json` (fecha, argumentos, versiones). Copiar `OUT/meshes` y `OUT/landmarks` a
 `SSM_MESH_DIR` y `SSM_LANDMARK_DIR` deja el set listo para `manifest`. No sobrescribe nada sin `--overwrite`.
 
-- **Suposiciones sobre los archivos de origen:** el nombre de cada STL empieza por el id original (`SA250167…`) y
-  contiene `pelvis_left` o `pelvis_right`; el nuevo nombre es el mismo con el id cambiado y `_aligned` al final. Si el
-  autosegmentador nombra los archivos de otra forma, hay que ajustar `find_meshes` y `output_name`.
+- **Nombres de los STL crudos:** como los del set actual (`<id>_raw_<n>_pelvis_<left|right>.stl`, sin `_aligned`). El id
+  puede ser el original (`SA250167…`) o el nuevo (`TMR_000004…`): se buscan los dos. El nombre de salida es el mismo con el
+  id original cambiado por el nuevo (todas las apariciones) y `_aligned` al final si no lo tenía. Cada lado necesita
+  exactamente un STL; si hay dos candidatos, se salta y se avisa. Sin un ejemplo real del autosegmentador, esto sigue siendo
+  una suposición que hay que confirmar con el primer lote.
 - **Estados:** `skipped` = falta alguna de las cuatro landmarks del marco, o el paciente no está en el archivo de
   equivalencias, o hay más de un STL candidato por lado; no se escribe nada. `review` = se escribe, pero con un motivo
   (lado que no coincide con el signo de x, malla no cerrada, landmark lejos de la superficie, distancias fuera de
@@ -117,7 +119,7 @@ salida, SHA-256) y `OUT/export_run.json` (fecha, argumentos, versiones). Copiar 
   77 `TMR_`. Las landmarks de una zona perdida pueden ir vacías: solo las cuatro del marco son obligatorias.
 - **El CSV alineado conserva `case_id` con el id original**, como el actual: quien lo comparta debe tenerlo presente.
 
-**Pruebas:** `python -m unittest discover tests` (10 pruebas, <1 s): recupera los landmarks alineados bajo un
+**Pruebas:** `python -m unittest discover tests` (12 pruebas, ~1 s): recupera los landmarks alineados bajo un
 movimiento rígido cualquiera, el marco cumple sus propiedades, el marco es un punto fijo sobre datos ya alineados,
 falta o degeneración de las cuatro landmarks se rechaza, la exportación de extremo a extremo con dos esferas (nombres,
 SHA-256, lado cambiado, sin sobrescritura) y, si `data/TMR_000004_landmarks_raw.csv` está, la reproducción del
@@ -149,5 +151,5 @@ coinciden con los conocidos; **no** prueba la alineación de mallas crudas reale
    se puede ejecutar allí. Sigue sin respuesta.
 5. ~~Identificadores~~ **Resuelto:** la equivalencia está en `case_mapping_log.csv` (`original_case_id,new_case_id`,
    77 filas `TMR_`; los `RMR_` no están). Es información identificable y `data/` no se sube a git.
-6. **Nombres de los STL crudos** (ver «Suposiciones» arriba) y **un STL crudo de ejemplo** para comprobar la
+6. **Un STL crudo de ejemplo** para comprobar la
    alineación de la malla, no solo la de los landmarks.
