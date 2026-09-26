@@ -51,15 +51,38 @@ Por cada paciente, con la malla de origen y sus landmarks en el **mismo** sistem
 - Entrada y salida en carpetas configurables (`SSM_EXPORT_IN`, `SSM_MESH_DIR`, `SSM_LANDMARK_DIR`), como el resto.
 - Registro de exportación (`export_log.csv`): archivo de origen, transformación aplicada, resultado de las comprobaciones.
 
+## Entrada de landmarks automáticos
+
+Los landmarks los produce el autosegmentador (otro proyecto; aquí solo se consume su CSV, no su código).
+Como **toda la alineación depende de cuatro de ellos** (`ASIS_L/R`, `PT_L/R`), un landmark automático erróneo
+inclina el sistema entero y contamina esa hemipelvis y el modelo. Por eso la exportación no debe fiarse del CSV
+sin comprobarlo. Comprobaciones propuestas, antes y después de alinear:
+
+| Comprobación | Rango observado en los 48 sujetos actuales (mínimo – mediana – máximo) |
+|---|---|
+| Distancia `ASIS_L`–`ASIS_R` | 190 – 228 – 281 mm |
+| Distancia `PT_L`–`PT_R` | 37 – 50 – 73 mm |
+| Punto medio ASIS a punto medio PT | 69 – 95 – 113 mm |
+| Distancia `FH` a `ASIS` del mismo lado | 62 – 96 – 113 mm |
+| Landmarks sobre la superficie de su hemipelvis | ASIS/PSIS/PT < 8 mm; FH a 15–35 mm (`ssm.check`) |
+| Lado coherente | el lado del nombre coincide con el signo de x tras alinear |
+
+Son rangos observados en pocos sujetos, no umbrales validados: sirven para **marcar** casos a revisar a mano,
+no para rechazarlos automáticamente. Los datos actuales tienen celdas vacías en los demás landmarks (`FH` 1,
+`GT` 3–4, `LT` 2, `PSIS` 4, `Coccyx` 2 de 48), pero **ninguna** en las ASIS y PT: si faltara alguna de las cuatro,
+esa hemipelvis no se puede alinear y se marca en lugar de exportarla.
+
+Lo que necesito ver: **un CSV de ejemplo del autosegmentador** (cabecera y una fila, sin datos identificables si
+prefieres): nombres de columnas, si hay un CSV por paciente o uno para todos, cómo se identifica al paciente
+(`case_id`) y en qué coordenadas están (las mismas que sus STL).
+
 ## Decisiones abiertas (necesito tu respuesta)
 
 1. ~~Origen: pelvis completa o hemipelvis~~ **Resuelto:** ya vienen separadas por hemipelvis. Queda confirmar
    que las dos de un mismo paciente comparten sistema de coordenadas de origen (si cada una está centrada por
    separado, no se puede alinear el par).
-2. **¿Los landmarks ya existen en las coordenadas de origen, o hay que colocarlos?** Si hay que colocarlos:
-   ¿a mano (3D Slicer, MeshLab…) o automáticamente? Es lo que más afecta a la calidad: un ASIS mal puesto
-   inclina todo el sistema, y en el set actual ya hubo landmarks que no coincidían con su malla (`TMR_000006_L`,
-   `TMR_000054_L`).
+2. ~~Landmarks~~ **Resuelto en principio:** llegan listados en un CSV generado por el autosegmentador automático,
+   en las coordenadas de origen. Falta ver un ejemplo de ese CSV (ver «Entrada de landmarks automáticos»).
 3. **¿Cómo se alinean los casos dañados (`RMR_…`)?** Si el hueso perdido incluye ASIS o PT, no se pueden usar
    esos puntos; habría que alinear con el lado sano (reflejando) o con los que sobrevivan.
 4. **¿Pueden salir los datos de su equipo?** Si no, el módulo se ejecuta allí y aquí solo entra el resultado;
