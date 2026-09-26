@@ -1,6 +1,6 @@
 """Compare validation runs on the shapes they share.
 
-    python "Pipeline SSM/tools/compare_validation.py" [--side R|L] [--modes 34] [--reg 10] BASE.csv OTHER.csv ...
+    python "Pipeline SSM/tools/compare_validation.py" [--side R|L|LR] [--modes 34] [--reg 10] BASE.csv OTHER.csv ...
 
 Each CSV comes from `python -m ssm.validate`. The defect error of a shape is its
 mean over every simulated defect (site and radius); only shapes present in every
@@ -20,14 +20,14 @@ def per_shape(path, side, modes, reg):
     df = pd.read_csv(path)
     if "shape" not in df:  # early right-only runs named the rows by patient
         df["shape"] = df["subject"] + "_R"
-    df = df[(df.site != "none") & (df.modes == modes) & (df.reg == reg) & df["shape"].str.endswith(f"_{side}")]
+    df = df[(df.site != "none") & (df.modes == modes) & (df.reg == reg) & df["shape"].str[-1].isin(list(side))]
     return df.groupby("shape")["defect_mean"].mean()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("csv", nargs="+")
-    parser.add_argument("--side", default="R", choices=["R", "L"])
+    parser.add_argument("--side", default="R", choices=["R", "L", "LR"], help="sides of the shapes to compare")
     parser.add_argument("--modes", type=int, default=34)
     parser.add_argument("--reg", type=float, default=10.0)
     args = parser.parse_args()
@@ -46,8 +46,12 @@ def main():
         line = f"  {v.mean():.3f}  {path}"
         if path != args.csv[0]:
             diff = v - base
-            se = diff.std(ddof=1) / np.sqrt(len(common))
-            line += f"   vs base {diff.mean():+.3f} +- {se:.3f}; better on {(diff < 0).sum()}, worse on {(diff > 0).sum()}"
+            line += f"   vs base {diff.mean():+.3f}"
+            if len(common) >= 5:
+                line += f" +- {diff.std(ddof=1) / np.sqrt(len(common)):.3f}"
+            else:
+                line += " (too few shapes for a standard error)"
+            line += f"; better on {(diff < 0).sum()}, worse on {(diff > 0).sum()}"
         print(line)
 
 

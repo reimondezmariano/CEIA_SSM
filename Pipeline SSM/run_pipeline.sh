@@ -9,13 +9,13 @@
 #   ./run_pipeline.sh optimize            particle correspondence (~10 min for 35 shapes)
 #   ./run_pipeline.sh analyze             mean shape and PCA                -> mean_shape_0.vtk, analysis.json
 #   ./run_pipeline.sh quality             coverage and roughness per shape
-#   ./run_pipeline.sh validate [--reduced] [--sides R] [--eval-sides L]   leave-one-patient-out on simulated defects
+#   ./run_pipeline.sh validate [--reduced] [--sides R] [--eval-sides L] [--eval-shapes A,B]   simulated defects
 #   ./run_pipeline.sh reconstruct DAMAGED.stl [--reference HEALTHY.stl]
 #   ./run_pipeline.sh all                 manifest .. quality, then a reduced validation
 #
 # Settings, all optional (defaults in brackets):
 #   SSM_MESH_DIR [~/DataSet]  SSM_LANDMARK_DIR [~/Landmarks_aligned]  SSM_DATA [~/SSM/data]
-#   SSM_PROJECT [shapeworks_project]  SSM_SIDES [R]
+#   SSM_PROJECT [shapeworks_project]  SSM_SIDES [R]  SSM_HOLDOUT [none: subjects kept out of the model]
 #   SHAPEWORKS_HOME [~/software/ShapeWorks-v6.7.0-linux]  SHAPEWORKS_ENV [~/miniconda3/envs/shapeworks]
 set -euo pipefail
 

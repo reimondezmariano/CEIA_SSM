@@ -60,6 +60,7 @@ real es el de conda.
 | `SSM_DATA` | `~/SSM/data` | Dónde se escribe todo lo generado |
 | `SSM_PROJECT` | `shapeworks_project` | Subcarpeta del proyecto ShapeWorks dentro de `SSM_DATA` (para experimentos) |
 | `SSM_SIDES` | `R` | Lados con los que se entrena el modelo (`R`, `L` o `LR`) |
+| `SSM_HOLDOUT` | (vacío) | Pacientes (ambos lados) que se dejan fuera del modelo para validarlos, separados por comas |
 | `SHAPEWORKS_HOME`, `SHAPEWORKS_ENV` | `~/software/ShapeWorks-v6.7.0-linux`, `~/miniconda3/envs/shapeworks` | Solo para `run_pipeline.sh` |
 
 ## Problemas conocidos (y su solución)

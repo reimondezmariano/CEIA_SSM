@@ -115,6 +115,14 @@ def main():
         sides = sys.argv[sys.argv.index("--eval-sides") + 1]
         targets = [name for name, _, _ in project.load_subjects(sides)]
         parts.append(f"eval{sides}")
+    if "--eval-shapes" in sys.argv:
+        # Shapes given by name, typically a held-out patient the model was built without
+        # (SSM_HOLDOUT): no fold is needed because they are not in the model.
+        targets = sys.argv[sys.argv.index("--eval-shapes") + 1].split(",")
+        missing = [t for t in targets if not (GROOMED / f"{t}.ply").exists()]
+        if missing:
+            raise SystemExit(f"no groomed mesh for {', '.join(missing)}")
+        parts.append("evalshapes")
     if tag:
         parts.append(tag)
     OUT = OUT.with_name("_".join(parts) + ".csv")

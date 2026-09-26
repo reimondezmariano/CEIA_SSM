@@ -40,6 +40,7 @@ trozo a un hueso sano, se reconstruye y se compara con el hueso original.
 | `--reduced` | solo K = 34 y 50 con reg 10 (5 veces menos trabajo) |
 | `--sides R` | entrena el PCA y evalúa solo con formas de ese lado |
 | `--eval-sides L` | evalúa formas que **no** están en el modelo (p. ej. izquierdas reflejadas contra un modelo de derechas) |
+| `--eval-shapes A,B` | evalúa esas formas por nombre, sin quitar ninguna del modelo: para pacientes reservados (`SSM_HOLDOUT`) |
 
 El archivo de salida se nombra según la combinación, dentro de `data/reconstruction/` (más el nombre del
 proyecto si `SSM_PROJECT` está definido):
@@ -71,6 +72,48 @@ Error medio en la zona del defecto, en mm:
   La regularización (1 frente a 10) casi no cambia nada (2,31 frente a 2,32 mm). Por eso se usan K = 34 y
   reg 10 por defecto (`ssm.reconstruct`).
 
+## Validación con un paciente reservado
+
+La validación dejando un paciente fuera tiene un sesgo: la forma probada sí participó en la optimización de
+partículas. Para medirlo se reserva un paciente **antes de entrenar**, de modo que el modelo (incluida la
+optimización) no lo ve nunca:
+
+```bash
+export SSM_PROJECT=shapeworks_project_holdout SSM_HOLDOUT=TMR_000018      # uno o varios, separados por comas
+for s in project optimize analyze quality; do "Pipeline SSM/run_pipeline.sh" $s; done      # ~12 min
+"Pipeline SSM/run_pipeline.sh" validate --reduced --eval-shapes TMR_000018_R,TMR_000018_L
+python "Pipeline SSM/tools/holdout_report.py" \
+    data/reconstruction/validation_reduced_evalshapes_holdout.csv \
+    data/reconstruction/validation_reduced_right.csv data/reconstruction/validation_reduced_evalL_right.csv
+```
+
+`SSM_HOLDOUT` excluye a los pacientes (los dos lados) al construir el proyecto; `--eval-shapes` los evalúa con
+los mismos defectos simulados. El informe compara, para cada forma, el error reservado con el de dejar uno
+fuera y dice dónde cae respecto al resto de formas.
+
+**Cómo se eligió el paciente:** para no elegirlo por su resultado, se listaron los pacientes elegibles (los
+dos lados con malla preparada, los 4 landmarks en cada lado, ninguna señal en `check`, lado derecho dentro del
+modelo: 22 pacientes) y se sorteó con `random.Random(2026)`. Salió `TMR_000018` (razón de volumen 1,01).
+
+**Resultado (K = 34, reg 10; modelo de 34 formas sin `TMR_000018`):**
+
+| Forma | Paciente reservado | Dejando uno fuera (misma forma) | Mediana de todas las formas |
+|---|---|---|---|
+| `TMR_000018_R` | 2,61 mm | 2,52 mm | 2,04 mm (percentil del reservado: 86) |
+| `TMR_000018_L` (reflejada) | 3,05 mm | 2,90 mm | 2,16 mm (percentil del reservado: 89) |
+
+El error sin defecto en todo el hueso es de 1,50 y 1,52 mm frente a 1,34 y 1,31 mm dejando uno fuera.
+
+**Cómo leerlo:**
+- El paciente reservado da un error **0,1–0,2 mm mayor** que dejando uno fuera para las mismas formas. Es el
+  orden y el sentido esperados del sesgo de la validación dejando uno fuera.
+- Este paciente es más difícil que la mediana (percentil 86–89), por eso sus cifras son mayores que la media
+  del set (2,2 mm); no significa que el modelo falle. Lo comparable es su propia fila de la tercera columna.
+- **Es un solo paciente**: dos formas y 12 defectos cada una, muy correlacionados. No hay error estándar y
+  0,1–0,2 mm también puede ser variación de la optimización (el modelo sin `TMR_000018` es otra ejecución,
+  con otras partículas). Confirma que las cifras de dejar uno fuera no están groseramente infladas; **no** las
+  sustituye. Para una estimación real hay que reservar varios pacientes (≥ 10–15 % del set).
+
 ## Cómo leer los resultados y comparar modelos
 
 Comparar dos validaciones sobre **las mismas formas** y con la diferencia acompañada de su error
@@ -88,7 +131,8 @@ se distingue del ruido con tan pocas formas.
 ## Limitaciones a tener presentes
 
 - **Optimismo:** la forma dejada fuera participó en la optimización de partículas (solo se quita del
-  PCA). Los errores son algo optimistas. Para formas que el modelo nunca vio, usar `--eval-sides`.
+  PCA). Los errores son algo optimistas: con un paciente reservado salió ~0,1–0,2 mm más (ver arriba). Para
+  formas que el modelo nunca vio, usar `--eval-sides` o `--eval-shapes` con `SSM_HOLDOUT`.
 - **Techo de modos:** al dejar fuera un paciente, cada fold tiene como mucho *n* − 2 modos con varianza
   (33 con 35 formas): en el modelo actual K = 34 y K = 50 se recortan a 33 y dan el mismo resultado.
 - **Defectos simulados:** cortes esféricos alrededor de landmarks. Los reales pueden ser irregulares y

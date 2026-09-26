@@ -64,6 +64,8 @@ La guía completa, con las decisiones que hay que volver a tomar, está en
   error medio en la zona del defecto **2,2 mm** (2,2 en derechos, 2,2 en izquierdos espejados);
   1,7 mm si el defecto está en el acetábulo; el peor defecto simulado tiene una media de 6,8 mm.
   La referencia sin modelo (forma media rígida) da 3,9 mm.
+- **Paciente reservado** (`TMR_000018`, sorteado, modelo entrenado sin él): 2,61 mm en derecha y 3,05 mm en izquierda
+  reflejada, 0,1–0,2 mm más que dejando uno fuera para las mismas formas. Es un solo paciente: comprobación, no estimación.
 - **Casos reales reconstruidos:** RMR_000008 (derecho dañado) y RMR_000002 (izquierdo dañado).
 
 Por qué el modelo es solo de derechos y no de ambos lados, y qué otras cosas se probaron y
@@ -76,6 +78,7 @@ Pipeline SSM/
 ├── README.md                    este documento
 ├── run_pipeline.sh              ejecuta una etapa (o todas) con el entorno correcto
 ├── tools/compare_validation.py  compara varias validaciones sobre las mismas formas
+├── tools/holdout_report.py      paciente reservado frente a dejar uno fuera
 └── docs/
     ├── 00-entorno.md            software, versiones, problemas conocidos
     ├── 01-exportacion.md        qué debe cumplir lo que se exporta

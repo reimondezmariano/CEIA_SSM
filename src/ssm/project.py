@@ -16,6 +16,9 @@ from .manifest import OUT as MANIFEST
 # module reads the same variables.
 PROJECT_DIR = DATA / os.environ.get("SSM_PROJECT", "shapeworks_project")
 SIDES = os.environ.get("SSM_SIDES", "R")
+# Subjects (both sides) kept out of the model and its optimization, to validate on patients
+# it has never seen: SSM_HOLDOUT=TMR_000018,TMR_000021
+HOLDOUT = {s for s in os.environ.get("SSM_HOLDOUT", "").split(",") if s}
 PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
@@ -78,6 +81,7 @@ def load_subjects(sides=None):
         for row in rows
         if row["shape"] not in excluded
         and row["shape"][-1] in sides
+        and row["subject"] not in HOLDOUT
         and (GROOMED / f"{row['shape']}.ply").exists()
     ]
 

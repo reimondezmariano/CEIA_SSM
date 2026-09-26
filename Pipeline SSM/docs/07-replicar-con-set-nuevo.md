@@ -98,14 +98,21 @@ Ver [06](06-reconstruccion.md).
 | **Radios y sitios de los defectos** | 20/30/40 mm alrededor de ASIS, PSIS, PT y FH; ajustarlos al tipo de defecto real esperado (`src/ssm/defects.py`). |
 | **Umbrales de `check`** | Deducidos de este set (landmarks superficiales ≤ 8 mm, FH 15–35 mm); revisar la distribución en el set nuevo antes de fiarse. |
 
-## Limitación: no hay un set de validación independiente
+## Validación independiente: reservar pacientes
 
-La validación es **dejar un paciente fuera** dentro del propio set de entrenamiento (con la salvedad de que
-la forma dejada fuera sí participa en la optimización de partículas; ver [05](05-validacion.md)). El único
-caso realmente ajeno al modelo es evaluar izquierdas reflejadas contra un modelo de derechas
-(`--eval-sides L`). Si se dispone de pacientes reservados solo para validar, hoy habría que añadirlos a un
-set aparte y no hay una opción para evaluarlos con un modelo ya entrenado; sería el siguiente cambio de
-código a hacer.
+La validación de las etapas anteriores deja un paciente fuera **dentro del propio set de entrenamiento**, y la
+forma dejada fuera sí participa en la optimización de partículas (sesgo pequeño, ver [05](05-validacion.md)).
+Para validar con pacientes que el modelo nunca ha visto:
+
+1. **Decidir cuáles antes de entrenar**, sin mirar resultados: elegibles (los dos lados, landmarks completos, sin
+   señal en `check`) y sorteo con semilla fija. En el set actual se reservó `TMR_000018`.
+2. Construir un modelo aparte sin ellos: `SSM_PROJECT=<nombre> SSM_HOLDOUT=<paciente,...>` y las etapas
+   `project`, `optimize`, `analyze`, `quality`.
+3. `validate --reduced --eval-shapes <formas>` y `tools/holdout_report.py` para compararlos con dejar uno fuera.
+
+Con **un** paciente solo es una comprobación aproximada (en el set actual, 0,1–0,2 mm por encima de dejar uno
+fuera). Con un set nuevo conviene reservar entre el 10 y el 15 % de los pacientes desde el principio; el
+modelo final de producción se entrena luego con todos.
 
 ## Tiempos y cifras de control (35 formas derechas, 8 procesos)
 
