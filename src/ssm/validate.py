@@ -11,7 +11,16 @@ particle optimization, so errors are slightly optimistic.
 """
 
 import csv
+import os
+import sys
 from multiprocessing import Pool
+
+# One thread per worker. Otherwise each worker's BLAS and VTK open a thread per
+# CPU and the pool spins ~60 runnable threads on 8 CPUs, about 10x slower. Must
+# be set before numpy and vtk load.
+for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VTK_SMP_MAX_THREADS"):
+    os.environ.setdefault(var, "1")
+
 
 import numpy as np
 import pyvista as pv
@@ -23,6 +32,8 @@ from .project import PROJECT_DIR
 OUT = PROJECT_DIR.parent / "reconstruction" / "validation.csv"
 
 CONFIGS = [(0, 0.0)] + [(k, reg) for k in (5, 10, 20, 34, 50) for reg in (1.0, 10.0)]
+# --reduced: the two settings that matter for comparing models, a fifth of the cost.
+REDUCED_CONFIGS = [(34, 10.0), (50, 10.0)]
 
 
 def distance(points, surface):
@@ -85,9 +96,26 @@ def summarize(rows):
 
 def main():
     names, world = model.load_world()
+    global CONFIGS, OUT
+    tag = PROJECT_DIR.name.removeprefix("shapeworks_project").strip("_")
+    parts = ["validation"]
+    if "--reduced" in sys.argv:
+        CONFIGS = REDUCED_CONFIGS
+        parts.append("reduced")
+    if "--sides" in sys.argv:
+        # Train the PCA on, and evaluate, only these sides of the optimized particles.
+        sides = sys.argv[sys.argv.index("--sides") + 1]
+        keep = [n[-1] in sides for n in names]
+        names, world = [n for n, k in zip(names, keep) if k], world[keep]
+        parts.append(f"sides{sides}")
+    if tag:
+        parts.append(tag)
+    OUT = OUT.with_name("_".join(parts) + ".csv")
+    rows = []
     with Pool() as pool:
-        rows = [r for subject in pool.imap_unordered(run_subject, [(n, names, world) for n in names])
-                for r in subject]
+        for done, subject in enumerate(pool.imap_unordered(run_subject, [(n, names, world) for n in names]), 1):
+            rows.extend(subject)
+            print(f"{done}/{len(names)} {subject[0]['shape']}", flush=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     fields = list(dict.fromkeys(k for r in rows for k in r))
     with OUT.open("w", newline="") as f:

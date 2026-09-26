@@ -1,4 +1,5 @@
 import csv
+import os
 from pathlib import Path
 
 import shapeworks as sw
@@ -6,7 +7,10 @@ import shapeworks as sw
 from .clean import GROOMED
 from .manifest import OUT as MANIFEST
 
-PROJECT_DIR = Path.home() / "SSM" / "data" / "shapeworks_project"
+# SSM_PROJECT and SSM_SIDES build a side experiment (e.g. SSM_PROJECT=shapeworks_project_right
+# SSM_SIDES=R) in its own directory; every module reads the same variables.
+PROJECT_DIR = Path.home() / "SSM" / "data" / os.environ.get("SSM_PROJECT", "shapeworks_project")
+SIDES = os.environ.get("SSM_SIDES", "LR")
 PROJECT = PROJECT_DIR / "pelvis.swproj"
 
 ICP_ITERATIONS = 100
@@ -55,6 +59,7 @@ def load_subjects():
         (row["shape"], row["mesh"], GROOMED / f"{row['shape']}.ply")
         for row in rows
         if row["shape"] not in EXCLUDE
+        and row["shape"][-1] in SIDES
         and (GROOMED / f"{row['shape']}.ply").exists()
     ]
 
