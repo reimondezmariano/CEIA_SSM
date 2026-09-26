@@ -18,6 +18,21 @@ No estaba escrito en ninguna parte; se ha inferido de `~/Landmarks_aligned` y se
 | Eje y | normal al plano APP; **posterior = +y** (cóccix ≈ +122 mm, centro de la cabeza femoral ≈ +52 mm) |
 | Lateralidad | terna directa (una rotación propia, sin reflejo): un lado izquierdo se convierte en derecho con x → −x |
 
+**Comprobado con datos reales:** con `TMR_000004_landmarks_raw.csv` (coordenadas de origen) la definición siguiente
+reproduce los 13 landmarks de `TMR_000004_landmarks_aligned.csv` con un error máximo de 3e-14 mm:
+
+```
+o  = (ASIS_L + ASIS_R + PT_L + PT_R) / 4
+x  = unit(ASIS_L − ASIS_R)
+v  = (ASIS_L + ASIS_R)/2 − (PT_L + PT_R)/2            # de púbico a espinas, dentro del plano APP
+z  = unit(v − (v·x) x)                                 # superior
+y  = z × x                                             # posterior
+alineado = [x; y; z] · (punto − o)                     # rotación propia (det = +1), sin escalado
+```
+
+Es, por tanto, el sistema del **plano pélvico anterior** (APP, casi el plano frontal del paciente), como se
+sospechaba.
+
 Consecuencia para la documentación: «plano sagital medio en x = 0» es solo aproximado. El origen es el centroide
 de cuatro puntos, no el punto medio de las ASIS, y el punto medio de las ASIS se desvía hasta 6 mm de x = 0.
 Lo que exige el pipeline (derecha en x < 0, izquierda en x > 0) sí se cumple.
@@ -83,8 +98,12 @@ prefieres): nombres de columnas, si hay un CSV por paciente o uno para todos, c�
    separado, no se puede alinear el par).
 2. ~~Landmarks~~ **Resuelto en principio:** llegan listados en un CSV generado por el autosegmentador automático,
    en las coordenadas de origen. Falta ver un ejemplo de ese CSV (ver «Entrada de landmarks automáticos»).
-3. **¿Cómo se alinean los casos dañados (`RMR_…`)?** Si el hueso perdido incluye ASIS o PT, no se pueden usar
-   esos puntos; habría que alinear con el lado sano (reflejando) o con los que sobrevivan.
+3. **Casos dañados (`RMR_…`).** Los dos casos actuales se alinearon **con el mismo APP** y con los cuatro puntos
+   (`RMR_000002`: 270 mm entre ASIS, `RMR_000008`: 199 mm; en ambos la suma de los cuatro puntos es 0 y las
+   ASIS comparten y y z). Solo faltan landmarks en zonas dañadas (`FH_L` y `FH_R`, `GT_L`, `LT_L/R` en
+   `RMR_000002`), no ASIS ni PT. Si el autosegmentador entrega las cuatro, no hace falta un método distinto. Si
+   falta alguna (hueso perdido en la ASIS o el pubis), queda por decidir: estimarla reflejando la del lado sano
+   (necesita una línea media) o alinear con otros puntos. Propuesta: marcar el caso, no inventar el punto.
 4. **¿Pueden salir los datos de su equipo?** Si no, el módulo se ejecuta allí y aquí solo entra el resultado;
    condiciona las dependencias y cómo lo pruebo.
 5. **Identificadores:** ¿quién mantiene la tabla original ↔ `TMR_`/`RMR_`, y qué numeración usan los archivos nuevos?
