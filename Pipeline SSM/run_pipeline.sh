@@ -2,6 +2,7 @@
 # Runs one stage of the SSM pipeline, or all of them. See README.md in this folder.
 #
 #   ./run_pipeline.sh env                 check the software
+#   ./run_pipeline.sh export --landmarks RAW.csv --meshes RAW_DIR   raw STL + landmarks -> aligned set (data/export)
 #   ./run_pipeline.sh manifest            list meshes and landmarks         -> data/manifest.csv
 #   ./run_pipeline.sh clean               mirror lefts, clean, remesh       -> data/groomed/*.ply
 #   ./run_pipeline.sh check               verify meshes and landmarks       -> data/check.csv (after clean)
@@ -66,6 +67,7 @@ stage_analyze() {
 stage="${1:-}"; shift || true
 case "$stage" in
     env)         stage_env ;;
+    export)      run export python -m ssm.export "$@" ;;
     manifest)    run manifest python -m ssm.manifest ;;
     check)       run check python -m ssm.check ;;
     clean)       run clean python -m ssm.clean ;;

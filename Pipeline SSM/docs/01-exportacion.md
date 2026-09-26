@@ -36,8 +36,9 @@ de casos dañados, el nombre solo necesita contener `pelvis_left` o `pelvis_righ
 
 ### Sistema de coordenadas: lo más importante
 
-Las mallas deben estar en el **mismo sistema «alineado»**, en **milímetros**, con el plano
-**sagital medio en x = 0**:
+Las mallas deben estar en el **mismo sistema «alineado»**, en **milímetros**: el del plano pélvico
+anterior (origen en el centroide de ASIS y PT; ver [09](09-diseno-exportacion.md)), con el plano sagital medio
+cerca de x = 0 (no exactamente):
 
 - la hemipelvis **derecha queda en x < 0** y la **izquierda en x > 0**;
 - los dos lados de un sujeto comparten el mismo sistema.

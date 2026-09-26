@@ -1,8 +1,8 @@
-# 09 · Diseño de la exportación (borrador)
+# 09 · Exportación: diseño y uso
 
-Estado: **borrador para acordar antes de escribir código**. Parte de que el material de origen son
-**mallas STL ya generadas, sin alinear**, que están en otro equipo o en la nube. Sustituirá a la plantilla vacía
-de [01](01-exportacion.md) cuando esté decidido.
+Estado: **implementada en `src/ssm/export.py`** (2026-09-26), probada con datos sintéticos y con el par real
+`TMR_000004`. Parte de que el material de origen son **hemipelvis en STL ya separadas y sin alinear**, más un CSV
+de landmarks del autosegmentador, ambos en coordenadas de origen. Lo que falta por decidir está al final.
 
 ## Lo que se sabe del sistema «alineado» (deducido de los 48 CSV de landmarks)
 
@@ -82,7 +82,7 @@ sin comprobarlo. Comprobaciones propuestas, antes y después de alinear:
 | Landmarks sobre la superficie de su hemipelvis | ASIS/PSIS/PT < 8 mm; FH a 15–35 mm (`ssm.check`) |
 | Lado coherente | el lado del nombre coincide con el signo de x tras alinear |
 
-Son rangos observados en pocos sujetos, no umbrales validados: sirven para **marcar** casos a revisar a mano,
+Son rangos observados en pocos sujetos (en el código, redondeados hacia fuera al mm entero: 190–282, 37–73, 68–114 y 62–114 mm), no umbrales validados: sirven para **marcar** casos a revisar a mano,
 no para rechazarlos automáticamente. Los datos actuales tienen celdas vacías en los demás landmarks (`FH` 1,
 `GT` 3–4, `LT` 2, `PSIS` 4, `Coccyx` 2 de 48), pero **ninguna** en las ASIS y PT: si faltara alguna de las cuatro,
 esa hemipelvis no se puede alinear y se marca en lugar de exportarla.
@@ -90,6 +90,47 @@ esa hemipelvis no se puede alinear y se marca en lugar de exportarla.
 Lo que necesito ver: **un CSV de ejemplo del autosegmentador** (cabecera y una fila, sin datos identificables si
 prefieres): nombres de columnas, si hay un CSV por paciente o uno para todos, cómo se identifica al paciente
 (`case_id`) y en qué coordenadas están (las mismas que sus STL).
+
+## Uso
+
+```bash
+"Pipeline SSM/run_pipeline.sh" export \
+    --landmarks RAW_LANDMARKS.csv      `# un CSV o una carpeta de CSV, una fila por paciente (case_id original)` \
+    --meshes    RAW_MESH_DIR           `# STL con el id original al principio y pelvis_left / pelvis_right en el nombre` \
+    --mapping   data/case_mapping_log.csv   `# original_case_id,new_case_id (por defecto)` \
+    --out       data/export            `# por defecto`
+```
+
+Escribe `OUT/meshes/<nuevo id>_..._pelvis_<left|right>_aligned.stl`, `OUT/landmarks/<nuevo id>_landmarks_aligned.csv`,
+`OUT/export_log.csv` (una fila por paciente y malla: estado `ok`/`review`/`skipped`, motivo, archivo de origen y de
+salida, SHA-256) y `OUT/export_run.json` (fecha, argumentos, versiones). Copiar `OUT/meshes` y `OUT/landmarks` a
+`SSM_MESH_DIR` y `SSM_LANDMARK_DIR` deja el set listo para `manifest`. No sobrescribe nada sin `--overwrite`.
+
+- **Suposiciones sobre los archivos de origen:** el nombre de cada STL empieza por el id original (`SA250167…`) y
+  contiene `pelvis_left` o `pelvis_right`; el nuevo nombre es el mismo con el id cambiado y `_aligned` al final. Si el
+  autosegmentador nombra los archivos de otra forma, hay que ajustar `find_meshes` y `output_name`.
+- **Estados:** `skipped` = falta alguna de las cuatro landmarks del marco, o el paciente no está en el archivo de
+  equivalencias, o hay más de un STL candidato por lado; no se escribe nada. `review` = se escribe, pero con un motivo
+  (lado que no coincide con el signo de x, malla no cerrada, landmark lejos de la superficie, distancias fuera de
+  rango). Un `review` no se descarta solo: lo decide quien conoce el caso.
+- **Casos dañados (`RMR_…`):** hay que añadir su fila al archivo de equivalencias; el archivo actual solo tiene los
+  77 `TMR_`. Las landmarks de una zona perdida pueden ir vacías: solo las cuatro del marco son obligatorias.
+- **El CSV alineado conserva `case_id` con el id original**, como el actual: quien lo comparta debe tenerlo presente.
+
+**Pruebas:** `python -m unittest discover tests` (10 pruebas, <1 s): recupera los landmarks alineados bajo un
+movimiento rígido cualquiera, el marco cumple sus propiedades, el marco es un punto fijo sobre datos ya alineados,
+falta o degeneración de las cuatro landmarks se rechaza, la exportación de extremo a extremo con dos esferas (nombres,
+SHA-256, lado cambiado, sin sobrescritura) y, si `data/TMR_000004_landmarks_raw.csv` está, la reproducción del
+alineado real.
+
+**Ida y vuelta con datos reales:** se pasó el set ya alineado (48 CSV y 85 STL de `~/DataSet`, con los nombres
+cambiados a los ids originales) como si fuera crudo. La transformación es la identidad: los landmarks difieren en
+2e-13 mm y las mallas en 0. Marcó solo 2 de 133 elementos, los ya conocidos `TMR_000006_L` (landmarks lejos de la malla) y
+`TMR_000054_L` (PSIS a 10 mm). Con las ventanas de distancia sin redondear hacia fuera marcaba 3 más, por 0,3 mm en el
+borde del rango: por eso se redondean. Las ventanas salen de estos mismos 48 sujetos, así que este resultado no es
+una prueba independiente de sus falsos positivos. Esto solo prueba que el código no daña los datos y que sus avisos
+coinciden con los conocidos; **no** prueba la alineación de mallas crudas reales, que todavía no se ha visto
+(solo hay un CSV crudo).
 
 ## Decisiones abiertas (necesito tu respuesta)
 
@@ -104,6 +145,9 @@ prefieres): nombres de columnas, si hay un CSV por paciente o uno para todos, c�
    `RMR_000002`), no ASIS ni PT. Si el autosegmentador entrega las cuatro, no hace falta un método distinto. Si
    falta alguna (hueso perdido en la ASIS o el pubis), queda por decidir: estimarla reflejando la del lado sano
    (necesita una línea media) o alinear con otros puntos. Propuesta: marcar el caso, no inventar el punto.
-4. **¿Pueden salir los datos de su equipo?** Si no, el módulo se ejecuta allí y aquí solo entra el resultado;
-   condiciona las dependencias y cómo lo pruebo.
-5. **Identificadores:** ¿quién mantiene la tabla original ↔ `TMR_`/`RMR_`, y qué numeración usan los archivos nuevos?
+4. **¿Pueden salir los datos del otro equipo?** El código solo necesita numpy, scipy, pandas y trimesh, así que
+   se puede ejecutar allí. Sigue sin respuesta.
+5. ~~Identificadores~~ **Resuelto:** la equivalencia está en `case_mapping_log.csv` (`original_case_id,new_case_id`,
+   77 filas `TMR_`; los `RMR_` no están). Es información identificable y `data/` no se sube a git.
+6. **Nombres de los STL crudos** (ver «Suposiciones» arriba) y **un STL crudo de ejemplo** para comprobar la
+   alineación de la malla, no solo la de los landmarks.

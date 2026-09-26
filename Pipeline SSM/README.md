@@ -23,7 +23,7 @@ documentación, un script que encadena las etapas y una herramienta de comparaci
 
 | # | Etapa | Comando (`./run_pipeline.sh …`) | Módulo | Salida (en `data/`) | Documento |
 |---|-------|--------------------------------|--------|---------------------|-----------|
-| 1 | Exportación de las caderas | — (fuera del repo) | — | `~/DataSet/*.stl`, `~/Landmarks_aligned/*.csv` | [01](docs/01-exportacion.md) |
+| 1 | Exportación de las caderas | `export` | `ssm.export` | `data/export/meshes/*.stl`, `landmarks/*.csv` (→ `~/DataSet`, `~/Landmarks_aligned`) | [01](docs/01-exportacion.md), [09](docs/09-diseno-exportacion.md) |
 | 2 | Manifiesto de datos | `manifest` | `ssm.manifest` | `manifest.csv` | [02](docs/02-datos-y-manifiesto.md) |
 | 3a | Preparación de mallas | `clean` | `ssm.clean` | `groomed/*.ply` | [03](docs/03-verificacion-y-preparacion.md) |
 | 3b | Verificación de mallas y landmarks | `check` | `ssm.check` | `check.csv` | [03](docs/03-verificacion-y-preparacion.md) |
@@ -81,6 +81,7 @@ Pipeline SSM/
 ├── run_pipeline.sh              ejecuta una etapa (o todas) con el entorno correcto
 ├── tools/compare_validation.py  compara varias validaciones sobre las mismas formas
 ├── tools/holdout_report.py      paciente reservado frente a dejar uno fuera
+(../tests/test_export.py)        pruebas de la exportación: python -m unittest discover tests
 └── docs/
     ├── 00-entorno.md            software, versiones, problemas conocidos
     ├── 01-exportacion.md        qué debe cumplir lo que se exporta
@@ -90,7 +91,8 @@ Pipeline SSM/
     ├── 05-validacion.md         diseño, cifras y cómo leer los resultados
     ├── 06-reconstruccion.md     reconstruir un caso dañado
     ├── 07-replicar-con-set-nuevo.md   lista de pasos para repetirlo
-    └── 08-historial-y-decisiones.md   cómo se llegó aquí
+    ├── 08-historial-y-decisiones.md   cómo se llegó aquí
+    └── 09-diseno-exportacion.md  alinear y renombrar crudos: diseño, uso, pruebas
 ```
 
 ## Convenciones
