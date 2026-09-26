@@ -32,7 +32,9 @@ Por cada paciente, con la malla de origen y sus landmarks en el **mismo** sistem
    (`GT`, `LT`, `Coccyx` se guardan pero no se usan). Cómo se colocan es la decisión más importante (ver abajo).
 3. **Calcular la transformación rígida** al sistema de arriba (sin escalado; el tamaño en mm se conserva).
 4. **Aplicarla** a las mallas y a todos los landmarks del paciente.
-5. **Separar en hemipelvis** izquierda y derecha, si el origen es una pelvis completa (ver abajo).
+5. **Separación en hemipelvis: no hace falta.** Las mallas de origen ya vienen separadas por hemipelvis
+   (respuesta del usuario). Se exige que las dos hemipelvis de un paciente estén en el mismo sistema de origen
+   que sus landmarks, para poder aplicarles la misma transformación.
 6. **Escribir** `<ID>_raw_<n>_pelvis_<left|right>_aligned.stl` y `<ID>_landmarks_aligned.csv` según el contrato de [01](01-exportacion.md).
 7. **Comprobar antes de entregar** con el mismo `ssm.check`: lado coherente con el signo de x, una sola pieza,
    landmarks sobre la superficie (ASIS/PSIS/PT < 8 mm; FH a 15–35 mm) y razón de volumen izquierda/derecha.
@@ -51,8 +53,9 @@ Por cada paciente, con la malla de origen y sus landmarks en el **mismo** sistem
 
 ## Decisiones abiertas (necesito tu respuesta)
 
-1. **¿Origen: pelvis completa o hemipelvis ya separadas?** El nombre actual (`raw_4_pelvis_left`) sugiere que
-   ya vienen separadas. Si no, hay que definir el corte (la sínfisis no está en x = 0 exacto).
+1. ~~Origen: pelvis completa o hemipelvis~~ **Resuelto:** ya vienen separadas por hemipelvis. Queda confirmar
+   que las dos de un mismo paciente comparten sistema de coordenadas de origen (si cada una está centrada por
+   separado, no se puede alinear el par).
 2. **¿Los landmarks ya existen en las coordenadas de origen, o hay que colocarlos?** Si hay que colocarlos:
    ¿a mano (3D Slicer, MeshLab…) o automáticamente? Es lo que más afecta a la calidad: un ASIS mal puesto
    inclina todo el sistema, y en el set actual ya hubo landmarks que no coincidían con su malla (`TMR_000006_L`,
