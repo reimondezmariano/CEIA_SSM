@@ -64,8 +64,10 @@ La guía completa, con las decisiones que hay que volver a tomar, está en
   error medio en la zona del defecto **2,2 mm** (2,2 en derechos, 2,2 en izquierdos espejados);
   1,7 mm si el defecto está en el acetábulo; el peor defecto simulado tiene una media de 6,8 mm.
   La referencia sin modelo (forma media rígida) da 3,9 mm.
-- **Paciente reservado** (`TMR_000018`, sorteado, modelo entrenado sin él): 2,61 mm en derecha y 3,05 mm en izquierda
-  reflejada, 0,1–0,2 mm más que dejando uno fuera para las mismas formas. Es un solo paciente: comprobación, no estimación.
+- **Pacientes reservados** (5 sorteados, modelo entrenado sin ellos; 10 formas): error medio **2,83 mm**
+  frente a 2,39 mm dejando uno fuera para las mismas formas; 2,30 frente a 2,11 mm sin el caso atípico
+  `TMR_000021`. Estimación honesta para un paciente nuevo: **2,3–2,8 mm** en la zona del defecto. Muestra
+  pequeña: ver [docs/05](docs/05-validacion.md).
 - **Casos reales reconstruidos:** RMR_000008 (derecho dañado) y RMR_000002 (izquierdo dañado).
 
 Por qué el modelo es solo de derechos y no de ambos lados, y qué otras cosas se probaron y

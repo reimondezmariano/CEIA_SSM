@@ -78,13 +78,15 @@ Sobre las 36 formas izquierdas reflejadas, que A nunca vio: **A 2,233 mm frente 
 lados** (diferencia +0,005 ± 0,051). Empatan, y la comparación favorecía al de ambos lados (esas formas
 participaron en su optimización). Con eso, un solo modelo de derechos cubre los dos lados.
 
-### 5. ¿Están inflados los resultados por dejar uno fuera? — Poco (con un solo paciente)
+### 5. ¿Están inflados los resultados por dejar uno fuera? — Algo: ~0,2 mm, y más en casos atípicos
 
-Se reservó un paciente antes de entrenar (`TMR_000018`, sorteado entre 22 elegibles) y se reconstruyó el
-modelo sin él, con optimización incluida. Error en la zona del defecto: **2,61 mm** (derecha) y **3,05 mm**
-(izquierda reflejada), frente a 2,52 y 2,90 mm que daba dejar uno fuera para las mismas formas, es decir,
-0,1–0,2 mm más. Este paciente es más difícil que la mediana (percentil 86–89 de las formas), y es solo uno:
-comprobación de plausibilidad, no estimación ([05](05-validacion.md)).
+Primero se reservó un paciente antes de entrenar (`TMR_000018`, sorteado entre 22 elegibles): 2,61 mm
+(derecha) y 3,05 mm (izquierda reflejada) frente a 2,52 y 2,90 mm dejando uno fuera. Después se amplió a
+**5 pacientes** (`TMR_000004`, `018`, `019`, `021`, `047`; modelo de 30 formas sin ellos, optimización
+incluida) y 10 formas: **2,83 mm frente a 2,39 mm** dejando uno fuera (diferencia pareada +0,44 ± 0,19 mm).
+Sin `TMR_000021`, un hueso grande que ya era de los peores dejando uno fuera, 2,30 frente a 2,11 mm (+0,19).
+Conclusión: los 2,2 mm de dejar uno fuera son algo optimistas; para un paciente nuevo, 2,3–2,8 mm. Son pocos
+pacientes ([05](05-validacion.md)).
 
 ## Cómo repetir los experimentos
 
@@ -113,7 +115,8 @@ Los archivos de esa época en `data/reconstruction/` conservan su nombre origina
 | `validation_reduced_evalL_right.csv` | A sobre izquierdas reflejadas |
 | `validation_reduced_sidesR.csv` (y `_sidesR_71.csv`, repetición con los nombres actuales) | **B** sobre derechas |
 | `validation_reduced_sidesR_evalL.csv` | B sobre izquierdas reflejadas |
-| `validation_reduced_evalshapes_holdout.csv` | paciente reservado `TMR_000018` (modelo sin él) |
+| `validation_reduced_evalshapes_holdout.csv` | paciente reservado `TMR_000018` (modelo sin él; superado por el siguiente) |
+| `validation_reduced_evalshapes_holdout5.csv` | 5 pacientes reservados (`TMR_000004`, `018`, `019`, `021`, `047`; modelo de 30 formas sin ellos) |
 
 ## Lo que no funcionó (o no se usa) y por qué
 
@@ -132,7 +135,9 @@ Los archivos de esa época en `data/reconstruction/` conservan su nombre origina
 - **Por qué la correspondencia de ambos lados es peor.** Se sabe que lo es, no por qué (por ejemplo, si
   ShapeWorks separa los dos lados en dos «clústeres» dentro del mismo modelo). No se ha investigado.
 - **Los parámetros del optimizador** no se han vuelto a ajustar desde el 2026-09-22.
-- **Validación independiente con más pacientes.** Solo se ha reservado un paciente; una estimación fiable
-  necesita reservar varios (≥ 10–15 % del set). Además de eso, los izquierdos reflejados frente a un modelo
-  de derechas y los dos casos reales (sin verdad conocida) son lo único que el modelo no vio.
+- **Validación independiente más amplia.** Ya se hizo con 5 pacientes reservados (2,83 mm frente a 2,39 mm
+  dejando uno fuera; [05](05-validacion.md)), pero son 10 formas y un caso atípico (`TMR_000021`) pesa mucho.
+  Una estimación más fiable necesita más pacientes, mejor si son nuevos y no reservados del mismo set. Además,
+  los izquierdos reflejados frente a un modelo de derechas y los dos casos reales (sin verdad conocida) son
+  lo único que el modelo no vio.
 - **El procedimiento de exportación** de las mallas no está documentado en el repositorio ([01](01-exportacion.md)).

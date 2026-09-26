@@ -105,14 +105,16 @@ forma dejada fuera sí participa en la optimización de partículas (sesgo peque
 Para validar con pacientes que el modelo nunca ha visto:
 
 1. **Decidir cuáles antes de entrenar**, sin mirar resultados: elegibles (los dos lados, landmarks completos, sin
-   señal en `check`) y sorteo con semilla fija. En el set actual se reservó `TMR_000018`.
+   señal en `check`) y sorteo con semilla fija. En el set actual se reservaron 5 (`TMR_000004`, `018`, `019`,
+   `021`, `047`).
 2. Construir un modelo aparte sin ellos: `SSM_PROJECT=<nombre> SSM_HOLDOUT=<paciente,...>` y las etapas
    `project`, `optimize`, `analyze`, `quality`.
 3. `validate --reduced --eval-shapes <formas>` y `tools/holdout_report.py` para compararlos con dejar uno fuera.
 
-Con **un** paciente solo es una comprobación aproximada (en el set actual, 0,1–0,2 mm por encima de dejar uno
-fuera). Con un set nuevo conviene reservar entre el 10 y el 15 % de los pacientes desde el principio; el
-modelo final de producción se entrena luego con todos.
+Con 5 pacientes (14 % de los 35 con lado derecho) el error salió 0,4 mm por encima de dejar uno fuera (2,83
+frente a 2,39 mm; 0,2 mm sin un caso atípico): ver [05](05-validacion.md). Sigue siendo una muestra pequeña.
+Con un set nuevo conviene reservar entre el 10 y el 15 % de los pacientes desde el principio; el modelo final de
+producción se entrena luego con todos.
 
 ## Tiempos y cifras de control (35 formas derechas, 8 procesos)
 
